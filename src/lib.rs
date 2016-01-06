@@ -3,11 +3,16 @@ extern crate ruster_unsafe;
 use ruster_unsafe::*;
 use std::mem::uninitialized;
 
+extern crate libc;
+use libc::c_uchar;
+use libc::size_t;
+
 /// Create NIF module data and init function.
 nif_init!(b"ruster_unsafe_demo\0", Some(load), Some(reload), Some(upgrade), Some(unload),
 	nif!(b"static_atom\0", 0, static_atom),
 	nif!(b"native_add\0" , 2, native_add, ERL_NIF_DIRTY_JOB_IO_BOUND),
-	nif!(b"tuple_add\0"  , 1, tuple_add, ERL_NIF_DIRTY_JOB_CPU_BOUND)
+	nif!(b"tuple_add\0"  , 1, tuple_add, ERL_NIF_DIRTY_JOB_CPU_BOUND),
+	nif!(b"getenv\0"     , 1, getenv, ERL_NIF_DIRTY_JOB_IO_BOUND)
 	);
 
 
@@ -84,4 +89,26 @@ extern "C" fn tuple_add(env: *mut ErlNifEnv,
     	   	enif_make_badarg(env)
     	}
 	}
+}
+
+/// Return env variable for the given key.
+extern "C" fn getenv(env: *mut ErlNifEnv,
+                     argc: c_int,
+                     args: *const ERL_NIF_TERM) -> ERL_NIF_TERM {
+    unsafe {
+        let mut args_len: u32 = uninitialized();
+        let mut key: c_uchar = uninitialized();
+        let mut value: c_uchar = uninitialized();
+        let mut val_size: size_t = uninitialized();
+
+        if argc == 1 &&
+           0 != enif_get_list_length(env, *args, &mut args_len) &&
+           0 != enif_get_string(env, *args, &mut key, args_len + 1,
+                                ErlNifCharEncoding::ERL_NIF_LATIN1) &&
+           0 == enif_getenv(&key, &mut value, &mut val_size) {
+            enif_make_string(env, &value, ErlNifCharEncoding::ERL_NIF_LATIN1)
+        } else {
+            enif_make_badarg(env)
+        }
+    }
 }

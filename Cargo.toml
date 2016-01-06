@@ -7,5 +7,9 @@ authors = ["Daniel Goertzen <daniel.goertzen@gmail.com>"]
 name = "ruster_unsafe_demo"
 crate-type = ["dylib"]
 
+[dependencies.ruster_unsafe]
+git = "https://github.com/tatsuya6502/ruster_unsafe/"
+rev = "nif-2.9"
+
 [dependencies]
-ruster_unsafe = "0.1"
+libc = ">=0.1"
